@@ -1,0 +1,33 @@
+{
+  "name": "md-notes-api",
+  "version": "0.0.0",
+  "description": "API for md-notes",
+  "main": "index.js",
+  "private": "true",
+  "author": "Runefarer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Runefarer/md-notes.git",
+    "directory": "api"
+  },
+  "license": "",
+  "type": "module",
+  "scripts": {
+    "start": "node -r dotenv/config index",
+    "lint": "eslint .",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "mongoose": "^5.11.18"
+  },
+  "devDependencies": {
+    "eslint": "^7.20.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.22.1",
+    "jest": "^26.6.3",
+    "supertest": "^6.1.3"
+  }
+}

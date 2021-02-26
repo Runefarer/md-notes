@@ -1,0 +1,27 @@
+{
+	"env": {
+		"browser": true,
+		"es2021": true,
+		"jest/globals": true
+	},
+	"parser": "babel-eslint",
+	"extends": [
+		"plugin:react/recommended",
+		"airbnb"
+	],
+	"parserOptions": {
+		"ecmaFeatures": {
+			"jsx": true
+		},
+		"ecmaVersion": 12,
+		"sourceType": "module"
+	},
+	"plugins": [
+		"react",
+		"jest"
+	],
+	"rules": {
+		"linebreak-style": "off",
+    "import/extensions": [ "error", "always" ]
+	}
+}
