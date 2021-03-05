@@ -1,12 +1,5 @@
-import express from 'express';
-
+import app from './app.js';
 import connect from './utils/db.js';
-
-const app = express();
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
 
 connect().then(() => {
   const port = process.env.PORT ?? 3000;

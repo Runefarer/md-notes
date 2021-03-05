@@ -10,13 +10,15 @@
     "url": "https://github.com/Runefarer/md-notes.git",
     "directory": "api"
   },
-  "license": "",
+  "license": "CC BY-NC-SA 4.0",
   "type": "module",
   "scripts": {
     "start": "node -r dotenv/config index",
+    "dev": "nodemon -r dotenv/config index",
     "lint": "eslint .",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test-unit": "jest ./.*.unit..*",
+    "test-int": "jest --testPathPattern=./tests/int/*"
   },
   "dependencies": {
     "dotenv": "^8.2.0",
@@ -24,10 +26,15 @@
     "mongoose": "^5.11.18"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.13.8",
+    "@types/jest": "^26.0.20",
+    "babel-jest": "^26.6.3",
     "eslint": "^7.20.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jest": "^24.1.5",
     "jest": "^26.6.3",
+    "nodemon": "^2.0.7",
     "supertest": "^6.1.3"
   }
 }

@@ -10,7 +10,7 @@
     "url": "https://github.com/Runefarer/md-notes.git",
     "directory": "app"
   },
-  "license": "",
+  "license": "CC BY-NC-SA 4.0",
   "type": "module",
   "scripts": {
     "dev": "webpack serve --mode development",
@@ -30,6 +30,7 @@
     "@testing-library/jest-dom": "^5.11.9",
     "@testing-library/react": "^11.2.5",
     "@testing-library/user-event": "^12.7.3",
+    "@types/jest": "^26.0.20",
     "babel-eslint": "^10.1.0",
     "babel-loader": "^8.2.2",
     "css-loader": "^5.1.0",

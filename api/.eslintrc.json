@@ -1,7 +1,8 @@
 {
   "env": {
     "es2021": true,
-    "node": true
+    "node": true,
+    "jest/globals": true
   },
   "extends": [
     "airbnb-base"
@@ -10,9 +11,21 @@
     "ecmaVersion": 12,
     "sourceType": "module"
   },
+  "plugins": [
+    "jest"
+  ],
   "rules": {
     "linebreak-style": "off",
     "no-console": "off",
-    "import/extensions": [ "error", "always" ]
+    "arrow-body-style": "off",
+    "import/extensions": [ "error", "always" ],
+    "quotes": [ "error", "single", { "allowTemplateLiterals": true } ],
+    "no-unused-vars": [ "error", { 
+      "vars": "all",
+      "args": "after-used", 
+      "argsIgnorePattern": "^__", 
+      "ignoreRestSiblings": false 
+    }],
+    "no-plusplus": [ "error", { "allowForLoopAfterthoughts": true } ]
   }
 }

@@ -51,22 +51,35 @@
   - [x] Setup testing frameworks
     - [x] Setup testing for Express
     - [x] Setup testing for React
-  - [] Setup frontend-backend communication
-  - [] Setup CRUD for notes
-  - [] Setup note editor
-  - [] Setup note previewer
-  - [] Setup note links
-  - [] Setup view and searching notes
-  - [] Setup tags for notes
-  - [] Setup searching notes by tags
+  - [x] (API) Setup basic notes service
+    - [x] Create schema/model for notes
+    - [x] Create service for CRUD actions on notes
+    - [x] Create api for notes
+    - [x] Ensure everything is well tested 
+  - [ ] Setup frontend-backend communication
+  - [ ] Setup CRUD for notes
+  - [ ] Setup note editor
+  - [ ] Setup note previewer
+  - [ ] Setup note links
+  - [ ] Setup view and searching notes
+  - [ ] Setup tags for notes
+  - [ ] Setup searching notes by tags
+  - [ ] Explore Swagger to improve/standardize API
 
 ### App Structure
-  > api
+  - api
     - package.json
-      * Express
-      * Mongoose
-      * Dotenv
-
-  > app
+      - Express
+      - Mongoose
+      - Dotenv
+    - components
+      - notes
+        - NoteModel.js
+        - NotesService.js
+        - NotesApi.js
+        * tests
+          - NotesService.test.js
+          
+  - app
     - package.json
-      * React
+      - React
