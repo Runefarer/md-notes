@@ -20,6 +20,7 @@
     - People can create Kanban boards to manage tasks, both individualy and in teams
     - People can manage history of notes and revert to older or newer version
       + <guruguhan> People can see differences between versions easily/visually
+    - People can put HTML in markdown: [https://gist.github.com/seanh/13a93686bf4c2cb16e658b3cf96807f2] <kwantuum>
   * More Advanced
     - <guruguhan> People can use different themes to personalize app/notes
     - Notes forming a 'website'/'blog'
@@ -51,15 +52,46 @@
   - [x] Setup testing frameworks
     - [x] Setup testing for Express
     - [x] Setup testing for React
-  - [x] (API) Setup basic notes service
+  - [x] (API) Setup basic notes endpoints
     - [x] Create schema/model for notes
     - [x] Create service for CRUD actions on notes
     - [x] Create api for notes
     - [x] Ensure everything is well tested 
+  - [ ] Setup basic app
+    - [ ] Setup note editor
+      - [ ] Parsing
+        - [x] Remark to parse Markdown
+        - [x] Go through line by line / block by block
+      - [ ] Editor UI
+        - [x] DraftJS to implement editor
+        - [x] Act upon transformed markdown and proces it
+        - [x] Handle edge cases where content disappears
+        - [ ] Make sure editor works for all markdown types
+        - [ ] Make sure editor works with pasting
+        - [ ] Make editing smooth and fast / fix any lag
+        - [ ] Make sure there are no editing issues
+        - [ ] Handle things by blocks
+      - [ ] Syntax highlighting
+        - [ ] Headings
+        - [ ] Bold, Italic, Underline, Strikethrough
+        - [ ] Images
+        - [ ] Links
+        - [ ] Lists
+        - [ ] Code inline and blocks
+        - [ ] Quotes
+        - [ ] Tables
+        - [ ] Checkboxes
+        - [ ] Horizontal Lines
+        - [ ] Languages inside code blocks
+      - [ ] Toolbar for formatting
+      - [ ] Numbered lines with folding
+      - [ ] Autocomplete
+    - [ ] Setup note previewer
   - [ ] Setup frontend-backend communication
-  - [ ] Setup CRUD for notes
-  - [ ] Setup note editor
-  - [ ] Setup note previewer
+  - [ ] Setup notes CRUD
+    - [ ] Setup CRUD UI
+    - [ ] Setup CRUD functionality
+    - [ ] Ensure everything is well tested
   - [ ] Setup note links
   - [ ] Setup view and searching notes
   - [ ] Setup tags for notes

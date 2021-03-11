@@ -1,40 +1,36 @@
-import path, { dirname } from 'path';
-import { fileURLToPath } from 'url';
-import HtmlWebpackPlugin from 'html-webpack-plugin';
+const path = require('path');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
-const cwd = dirname(fileURLToPath(import.meta.url));
-
-const config = {
+module.exports = {
   entry: {
-    index: path.resolve(cwd, 'src', 'index.jsx'),
+    index: path.resolve(__dirname, 'src', 'index.js'),
   },
   output: {
     filename: '[name].bundle.js',
-    path: path.resolve(cwd, 'dist'),
+    path: path.resolve(__dirname, 'dist'),
   },
   module: {
     rules: [
       {
-        test: /\.scss$/,
+        test: /\.s?css$/,
         use: ['style-loader', 'css-loader', 'sass-loader'],
       },
       {
-        test: /\.(?:jsx?)$/,
-        use: ['babel-loader', 'eslint-loader'],
+        test: /\.jsx?$/,
+        exclude: /node_modules/,
+        use: ['babel-loader'],
       },
     ],
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: path.resolve(cwd, 'public', 'index.html'),
+      template: path.resolve(__dirname, 'public', 'index.html'),
     }),
   ],
   devServer: {
-    contentBase: path.resolve(cwd, 'dist'),
+    contentBase: path.resolve(__dirname, 'dist'),
     compress: true,
     port: 8000,
   },
   watch: true,
 };
-
-export { config as default };

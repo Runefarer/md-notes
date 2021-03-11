@@ -1,0 +1,52 @@
+.thematic-break {
+  font-weight: 600;
+  text-transform: full-width;
+}
+
+.heading {
+  font-weight: 900;
+
+  @for $i from 1 through 6 {
+    &.heading-#{$i} {
+      font-size: 1.7em - ($i / 10);
+    }
+  }
+}
+
+.code {
+  font-family: monospace;
+  padding: 0.5em;
+}
+
+.definition {
+  font-weight: 500;
+  
+  &.definition-label {
+    font-weight: 900;
+    padding-left: 0.5rem;
+  }
+
+  &.definition-url {
+    text-decoration: underline;
+  }
+
+  &.definition-title {
+    font-style: italic;
+  }
+}
+
+.table {
+  font-family: monospace;
+
+  &.table-separator, &.table-delimiter, &.table-header {
+    font-weight: 900;
+  }
+}
+
+.strong {
+  font-weight: 900;
+}
+
+.emphasis {
+  font-style: italic;
+}

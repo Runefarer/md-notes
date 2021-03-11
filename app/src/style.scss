@@ -11,21 +11,13 @@ html, body, #root {
 .container {
   height: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background-color: hsl(0, 10%, 20%);
-
-  .thing {
-    width: 30%;
-    height: 30%;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    background-color: hsl(350, 40%, 40%);
-    color: hsl(200, 70%, 80%);
+  background-color: hsl(340, 20%, 20%);
+  color: hsl(0, 10%, 80%);
+  font-size: 1.2rem;
+  
+  & > * {
+    flex-grow: 1;
   }
 }
