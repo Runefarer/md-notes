@@ -62,6 +62,7 @@
       - [ ] Parsing
         - [x] Remark to parse Markdown
         - [x] Go through line by line / block by block
+        - [ ] Fix mix of lazy/non-lazy block-quotes
       - [ ] Editor UI
         - [x] DraftJS to implement editor
         - [x] Act upon transformed markdown and proces it
@@ -69,8 +70,12 @@
         - [ ] Make sure editor works for all markdown types
         - [ ] Make sure editor works with pasting
         - [ ] Make editing smooth and fast / fix any lag
+        - [ ] Make sure parse processing is better
+        - [ ] Make sure multiline definitions are processed/decorated properly
+        - [ ] Format table properly while editing
+        - [ ] Indicate list indentation for both singleline and spread
         - [ ] Make sure there are no editing issues
-        - [ ] Handle things by blocks
+        - [ ] Handle HTML entitites
       - [ ] Syntax highlighting
         - [ ] Headings
         - [ ] Bold, Italic, Underline, Strikethrough

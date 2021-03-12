@@ -23,7 +23,7 @@
   
   &.definition-label {
     font-weight: 900;
-    padding-left: 0.5rem;
+    padding-left: 0.5em;
   }
 
   &.definition-url {
@@ -43,10 +43,58 @@
   }
 }
 
+.blockquote {
+  &:first-of-type, :not(&) + & {
+    margin-left: 0.25em;
+    border-left: 0.2em solid;
+    padding: 0 0.25em;
+  }
+}
+
+.list-item {
+  &.list-item-pre {
+    padding: 1px 0 1px 0.25em;
+    font-weight: 900;
+    font-family: monospace;
+  }
+
+  &.tasklist {
+    padding: 0 0.1em;
+    font-weight: 600;
+    font-family: monospace;
+  }
+}
+
+.inline-code {
+  font-family: monospace;
+  padding: 0 0.25em;
+}
+
 .strong {
   font-weight: 900;
 }
 
 .emphasis {
   font-style: italic;
+}
+
+.delete {
+  text-decoration: line-through 0.1em;
+}
+
+.link {
+  &.link-url {
+    text-decoration: underline;
+  }
+
+  &.link-title {
+    font-style: italic;
+  }
+}
+
+.link-reference {
+  &.link-reference-ref {
+    text-decoration: underline;
+    font-weight: 600;
+  }
 }

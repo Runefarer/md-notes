@@ -156,14 +156,183 @@ function processTable(chunk, blockText, blockLine, decorations) {
   return processed;
 }
 
+function processListItem(chunk, blockText, blockLine, decorations) {
+  let processed = [...decorations];
+
+  processed = setKey(0, blockText.length, `list-item`, processed);
+
+  if (blockLine === chunk.position.start.line) {
+    const start = chunk.position.start.column - 1;
+    let end = null;
+
+    if (chunk.checked !== null) {
+      const match = blockText.match(/\[(.+)\]/);
+      if (match !== null) {
+        const openIndex = match.index;
+        const closeIndex = match.index + match[0].length - 1;
+
+        const outerKey = `tasklist${chunk.checked ? ' checked' : ''}`;
+        const innerKey = `tasklist tasklist-inner${chunk.checked ? ' checked' : ''}`;
+
+        processed[openIndex] = `${processed[openIndex]} ${outerKey}`;
+        processed[closeIndex] = `${processed[closeIndex]} ${outerKey}`;
+        processed = setKey(openIndex + 1, closeIndex, innerKey, processed);
+
+        end = match.index;
+      } else {
+        end = blockText.length;
+      }
+    } else {
+      end = chunk.children.length
+        ? chunk.children[0].position.start.column - 1
+        : blockText.length;
+    }
+
+    processed = setKey(start, end, `list-item-pre`, processed);
+  }
+
+  processed = processChunkChildren(chunk, blockText, blockLine, processed);
+
+  return processed;
+}
+
+function processLink(chunk, blockText, blockLine, decorations) {
+  let processed = [...decorations];
+
+  processed = setKey(0, blockText.length, `link`, processed);
+
+  let linkEndLine;
+  let linkEndIndex = 0;
+
+  if (chunk.children.length) {
+    const lastChild = chunk.children[chunk.children.length - 1];
+    linkEndLine = lastChild.position.end.line;
+
+    if (blockLine === linkEndLine) {
+      linkEndIndex = lastChild.position.end.column;
+
+      if (
+        chunk.children.length === 1
+        && lastChild.type === 'text'
+        && chunk.url.indexOf(lastChild.value) !== -1
+      ) {
+        return setKey(
+          lastChild.position.start.column - 1,
+          lastChild.position.end.column - 1,
+          'link-url',
+          processed,
+        );
+      }
+    }
+  } else {
+    linkEndLine = chunk.position.start.line;
+
+    if (blockLine === linkEndLine) {
+      linkEndIndex = blockText.match(/\]\(/).index + 1;
+    }
+  }
+
+  if (blockLine >= linkEndLine) {
+    const escapedUrl = chunk.url.replace(/([^\w])/g, '\\$1');
+    const urlRegex = new RegExp(`<${escapedUrl}>|${escapedUrl}`);
+    const urlMatch = blockText.substring(linkEndIndex).match(urlRegex);
+
+    if (urlMatch !== null && urlMatch[0].length) {
+      processed = setKey(
+        linkEndIndex + urlMatch.index,
+        linkEndIndex + urlMatch.index + urlMatch[0].length,
+        `link-url`,
+        processed,
+      );
+    }
+
+    if (chunk.title) {
+      const escapedTitle = chunk.title.replace(/([^\w])/g, '\\$1');
+      const titleRegex = new RegExp(`\\"${escapedTitle}\\"|\\'${escapedTitle}\\'|\\(${escapedTitle}\\)`);
+      const titleMatch = blockText.substring(linkEndIndex).match(titleRegex);
+
+      if (titleMatch !== null && titleMatch[0].length) {
+        processed = setKey(
+          linkEndIndex + titleMatch.index,
+          linkEndIndex + titleMatch.index + titleMatch[0].length,
+          `link-title`,
+          processed,
+        );
+      }
+    }
+  }
+
+  processed = processChunkChildren(chunk, blockText, blockLine, processed);
+
+  return processed;
+}
+
+function processLinkReference(chunk, blockText, blockLine, decorations) {
+  let processed = [...decorations];
+
+  processed = setKey(0, blockText.length, `link-reference`, processed);
+
+  let linkEndLine;
+  let linkEndIndex = 0;
+
+  if (chunk.children.length) {
+    const lastChild = chunk.children[chunk.children.length - 1];
+    linkEndLine = lastChild.position.end.line;
+
+    if (blockLine === linkEndLine) {
+      linkEndIndex = lastChild.position.end.column;
+    }
+  } else {
+    linkEndLine = chunk.position.start.line;
+
+    if (blockLine === linkEndLine) {
+      linkEndIndex = blockText.match(/\]\(/).index + 1;
+    }
+  }
+
+  if (blockLine >= linkEndLine) {
+    const labelLines = chunk.label.split('\n').map((line, idx, arr) => {
+      let ret = line;
+      if (idx === 0) {
+        ret = `[${ret}`;
+      }
+
+      if (idx === arr.length - 1) {
+        ret = `${ret}]`;
+      }
+
+      return ret;
+    });
+    for (let i = 0; i < labelLines.length; i++) {
+      const labelIndex = blockText.substring(linkEndIndex).indexOf(labelLines[i]);
+      if (labelIndex !== -1) {
+        processed = setKey(
+          linkEndIndex + labelIndex,
+          linkEndIndex + labelIndex + labelLines[i].length,
+          `link-reference-ref`,
+          processed,
+        );
+
+        break;
+      }
+    }
+  }
+
+  processed = processChunkChildren(chunk, blockText, blockLine, processed);
+
+  return processed;
+}
+
 function processChunkChildren(chunk, blockText, blockLine, decorations) {
   let processed = [...decorations];
 
   if (chunk.children) {
     for (let i = 0; i < chunk.children.length; i++) {
-      const { start: startPos, end: endPos } = chunk.children[i].position;
-      if (startPos.line <= blockLine && endPos.line >= blockLine) {
-        processed = processChunk(chunk.children[i], blockText, blockLine, processed);
+      if (chunk.children[i].position) {
+        const { start: startPos, end: endPos } = chunk.children[i].position;
+        if (startPos.line <= blockLine && endPos.line >= blockLine) {
+          processed = processChunk(chunk.children[i], blockText, blockLine, processed);
+        }
       }
     }
   }
@@ -198,6 +367,22 @@ function processChunk(chunk, blockText, blockLine, decorations) {
 
     case 'table':
       processed = processTable(chunk, blockText, blockLine, processed);
+      break;
+
+    case 'listItem':
+      processed = processListItem(chunk, blockText, blockLine, processed);
+      break;
+
+    case 'inlineCode':
+      key = `inline-code`;
+      break;
+
+    case 'link':
+      processed = processLink(chunk, blockText, blockLine, processed);
+      break;
+
+    case 'linkReference':
+      processed = processLinkReference(chunk, blockText, blockLine, processed);
       break;
 
     default:
