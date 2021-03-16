@@ -83,6 +83,8 @@
 }
 
 .link {
+  font-weight: 500;
+
   &.link-url {
     text-decoration: underline;
   }
@@ -93,8 +95,33 @@
 }
 
 .link-reference {
+  font-weight: 500;
+
   &.link-reference-ref {
     text-decoration: underline;
-    font-weight: 600;
+  }
+}
+
+.image {
+  font-weight: 500;
+
+  &.image-alt {
+    padding-left: 0.1em;
+  }
+
+  &.image-url {
+    text-decoration: underline;
+  }
+
+  &.image-title {
+    font-style: italic;
+  }
+}
+
+.image-reference {
+  font-weight: 500;
+
+  &.image-reference-ref {
+    text-decoration: underline;
   }
 }

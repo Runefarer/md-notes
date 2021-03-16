@@ -1,30 +1,18 @@
 import React, { useState } from 'react';
-import { List } from 'immutable';
+import { List, Map } from 'immutable';
 import {
+  ContentState,
   Editor as DraftEditor,
   EditorState,
+  Modifier,
+  SelectionState,
 } from 'draft-js';
+import { diffLines } from 'diff';
 
 import 'draft-js/dist/Draft.css';
 import './Editor.scss';
 
-import { parseAsLines } from '../services/parser';
-
-const TEST = `   # Heading
-This has a [link](https://twitch.tv/runefarer), but who knows
-what it really [is][1]?
-
-  - One
-  - Two
-    - Two point One
-    - Two point two
-  - Three
-
-Heading 2
-    Rather long
-===========
-
-[1]: #Heading-2-Rather-long`;
+import { parseAsLines } from '../utils/parser';
 
 const MarkdownHighlight = ({ type, children }) => {
   return (
@@ -156,10 +144,10 @@ function processTable(chunk, blockText, blockLine, decorations) {
   return processed;
 }
 
-function processListItem(chunk, blockText, blockLine, decorations) {
+function processListItem(chunk, blockText, blockLine, decorations, from, to) {
   let processed = [...decorations];
 
-  processed = setKey(0, blockText.length, `list-item`, processed);
+  processed = setKey(from, to, `list-item`, processed);
 
   if (blockLine === chunk.position.start.line) {
     const start = chunk.position.start.column - 1;
@@ -196,13 +184,13 @@ function processListItem(chunk, blockText, blockLine, decorations) {
   return processed;
 }
 
-function processLink(chunk, blockText, blockLine, decorations) {
+function processLink(chunk, blockText, blockLine, decorations, from, to) {
   let processed = [...decorations];
 
-  processed = setKey(0, blockText.length, `link`, processed);
+  processed = setKey(from, to, `link`, processed);
 
   let linkEndLine;
-  let linkEndIndex = 0;
+  let linkEndIndex = from;
 
   if (chunk.children.length) {
     const lastChild = chunk.children[chunk.children.length - 1];
@@ -267,13 +255,13 @@ function processLink(chunk, blockText, blockLine, decorations) {
   return processed;
 }
 
-function processLinkReference(chunk, blockText, blockLine, decorations) {
+function processLinkReference(chunk, blockText, blockLine, decorations, from, to) {
   let processed = [...decorations];
 
-  processed = setKey(0, blockText.length, `link-reference`, processed);
+  processed = setKey(from, to, `link-reference`, processed);
 
   let linkEndLine;
-  let linkEndIndex = 0;
+  let linkEndIndex = from;
 
   if (chunk.children.length) {
     const lastChild = chunk.children[chunk.children.length - 1];
@@ -286,11 +274,37 @@ function processLinkReference(chunk, blockText, blockLine, decorations) {
     linkEndLine = chunk.position.start.line;
 
     if (blockLine === linkEndLine) {
-      linkEndIndex = blockText.match(/\]\(/).index + 1;
+      linkEndIndex = blockText.match(/\]\[/).index + 1;
     }
   }
 
-  if (blockLine >= linkEndLine) {
+  if (chunk.referenceType !== 'full') {
+    const labelLines = chunk.label.split('\n').map((line, idx, arr) => {
+      let ret = line;
+      if (idx === 0) {
+        ret = `[${ret}`;
+      }
+
+      if (idx === arr.length - 1) {
+        ret = `${ret}]`;
+      }
+
+      return ret;
+    });
+    for (let i = 0; i < labelLines.length; i++) {
+      const labelIndex = blockText.indexOf(labelLines[i]);
+      if (labelIndex !== -1) {
+        processed = setKey(
+          labelIndex,
+          labelIndex + labelLines[i].length,
+          `link-reference-ref`,
+          processed,
+        );
+
+        break;
+      }
+    }
+  } else if (blockLine >= linkEndLine) {
     const labelLines = chunk.label.split('\n').map((line, idx, arr) => {
       let ret = line;
       if (idx === 0) {
@@ -310,6 +324,136 @@ function processLinkReference(chunk, blockText, blockLine, decorations) {
           linkEndIndex + labelIndex,
           linkEndIndex + labelIndex + labelLines[i].length,
           `link-reference-ref`,
+          processed,
+        );
+
+        break;
+      }
+    }
+  }
+
+  processed = processChunkChildren(chunk, blockText, blockLine, processed);
+
+  return processed;
+}
+
+function processImage(chunk, blockText, blockLine, decorations) {
+  // TODO: When split into multiple lines and url is same as label
+  // not handling processing properly
+
+  let processed = [...decorations];
+  let index = 0;
+
+  const altLines = chunk.alt.split('\n').map((line, idx, arr) => {
+    let ret = line;
+    if (idx === 0) {
+      ret = `![${ret}`;
+    }
+
+    if (idx === arr.length - 1) {
+      ret = `${ret}]`;
+    }
+
+    return ret;
+  });
+  for (let i = 0; i < altLines.length; i++) {
+    const altIndex = blockText.indexOf(altLines[i]);
+    if (altIndex >= index) {
+      index = altIndex + altLines[i].length;
+
+      processed = setKey(
+        altIndex,
+        index,
+        `image image-alt`,
+        processed,
+      );
+
+      break;
+    }
+  }
+
+  const urlIndex = blockText.indexOf(chunk.url);
+  if (urlIndex >= index) {
+    index = urlIndex + chunk.url.length;
+    processed = setKey(
+      urlIndex,
+      index,
+      `image image-url`,
+      processed,
+    );
+  }
+
+  const titleIndex = blockText.indexOf(chunk.title);
+  if (titleIndex >= index + 1) {
+    processed = setKey(
+      titleIndex - 1,
+      titleIndex + chunk.title.length + 1,
+      `image image-title`,
+      processed,
+    );
+  }
+
+  return processed;
+}
+
+function processImageReference(chunk, blockText, blockLine, decorations, from, to) {
+  let processed = [...decorations];
+
+  processed = setKey(from, to, `image-reference`, processed);
+
+  const linkEndLine = chunk.position.start.line + chunk.alt.split('\n').length - 1;
+  let linkEndIndex = from;
+
+  if (blockLine === linkEndLine) {
+    linkEndIndex = (blockText.match(/\]\[/)?.index ?? (from - 1)) + 1;
+  }
+
+  if (chunk.referenceType !== 'full') {
+    const labelLines = chunk.label.split('\n').map((line, idx, arr) => {
+      let ret = line;
+      if (idx === 0) {
+        ret = `[${ret}`;
+      }
+
+      if (idx === arr.length - 1) {
+        ret = `${ret}]`;
+      }
+
+      return ret;
+    });
+    for (let i = 0; i < labelLines.length; i++) {
+      const labelIndex = blockText.indexOf(labelLines[i]);
+      if (labelIndex !== -1) {
+        processed = setKey(
+          labelIndex,
+          labelIndex + labelLines[i].length,
+          `image-reference-ref`,
+          processed,
+        );
+
+        break;
+      }
+    }
+  } else if (blockLine >= linkEndLine) {
+    const labelLines = chunk.label.split('\n').map((line, idx, arr) => {
+      let ret = line;
+      if (idx === 0) {
+        ret = `[${ret}`;
+      }
+
+      if (idx === arr.length - 1) {
+        ret = `${ret}]`;
+      }
+
+      return ret;
+    });
+    for (let i = 0; i < labelLines.length; i++) {
+      const labelIndex = blockText.substring(linkEndIndex).indexOf(labelLines[i]);
+      if (labelIndex !== -1) {
+        processed = setKey(
+          linkEndIndex + labelIndex,
+          linkEndIndex + labelIndex + labelLines[i].length,
+          `image-reference-ref`,
           processed,
         );
 
@@ -370,7 +514,9 @@ function processChunk(chunk, blockText, blockLine, decorations) {
       break;
 
     case 'listItem':
-      processed = processListItem(chunk, blockText, blockLine, processed);
+      processed = processListItem(
+        chunk, blockText, blockLine, processed, from.column - 1, to.column - 1,
+      );
       break;
 
     case 'inlineCode':
@@ -378,11 +524,25 @@ function processChunk(chunk, blockText, blockLine, decorations) {
       break;
 
     case 'link':
-      processed = processLink(chunk, blockText, blockLine, processed);
+      processed = processLink(
+        chunk, blockText, blockLine, processed, from.column - 1, to.column - 1,
+      );
       break;
 
     case 'linkReference':
-      processed = processLinkReference(chunk, blockText, blockLine, processed);
+      processed = processLinkReference(
+        chunk, blockText, blockLine, processed, from.column - 1, to.column - 1,
+      );
+      break;
+
+    case 'image':
+      processed = processImage(chunk, blockText, blockLine, processed);
+      break;
+
+    case 'imageReference':
+      processed = processImageReference(
+        chunk, blockText, blockLine, processed, from.column - 1, to.column - 1,
+      );
       break;
 
     default:
@@ -423,6 +583,12 @@ class MarkdownDecorator {
     if (this.state.text !== text) {
       this.generateDecorations(text, contentState);
     }
+
+    if (blockLine === null) {
+      this.state.decorated.push(false);
+      return List(new Array(block.getText().length).fill(null));
+    }
+
     this.state.decorated[blockLine - 1] = true;
 
     return List(this.state.decorations[blockLine - 1]);
@@ -433,44 +599,126 @@ class MarkdownDecorator {
   }
 
   generateDecorations(text) {
+    const oldBlocks = this.state.blocks ?? [];
+
     const oldLines = this.state.lines;
-    const oldParsedLines = this.state.parsedLines;
     const oldDecorations = this.state.decorations;
     const oldDecorated = this.state.decorated;
 
-    const parsedLines = parseAsLines(text);
-    const lines = text.split('\n');
+    // TODO: Parsing entire text each time is laggy
 
-    this.state.decorations = new Array(lines.length);
-    this.state.decorated = new Array(lines.length);
+    // Find difference in text from last time
+    // Find in previous parse where new changes are - multiple cases to consider
+    // Generate block of text to be parsed in this go
+    // block, line 5 column 1 to line 10 column 8
+    // Parse and process block of text
+    // Decorate the correct lines
 
-    console.log('parsedLines: ', parsedLines);
+    console.time('diff');
+    const diff = diffLines(this.state.text || '', text);
+    console.timeEnd('diff');
 
-    for (let i = 0; i < lines.length; i++) {
-      if (
-        oldLines
-        && oldParsedLines
-        && oldLines[i] === lines[i]
-        && JSON.stringify(oldParsedLines[i]) === JSON.stringify(parsedLines[i])
-      ) {
-        this.state.decorations[i] = oldDecorations[i];
-        this.state.decorated[i] = oldDecorated[i];
-      } else {
-        let decorations = new Array(lines[i].length).fill(null);
+    let linesAdded = 0;
+    let linesRemoved = 0;
+    let lineCount = 0;
+    let changed = false;
+    let changeFrom = 0;
 
-        if (parsedLines[i]) {
-          for (let j = 0; j < parsedLines[i].length; j++) {
-            decorations = processChunk(parsedLines[i][j], lines[i], i + 1, decorations);
-          }
-        }
+    diff.forEach((part) => {
+      if (part.removed) {
+        linesRemoved = part.count;
+        changed = true;
+      } else if (part.added) {
+        linesAdded = part.count;
+        changed = true;
+      } else if (!changed) {
+        lineCount += part.count;
+      }
+    });
 
-        this.state.decorations[i] = decorations;
-        this.state.decorated[i] = decorations.every((dec) => dec === null);
+    changeFrom = lineCount + 1;
+
+    // we need to construct source to be parsed
+    console.log(`${linesRemoved} lines removed from line ${changeFrom}`);
+    console.log(`${linesAdded} lines added at line ${changeFrom}`);
+    // only considering adding
+    const lineSpan = { from: changeFrom, to: changeFrom + linesAdded };
+    for (let i = 0; i < oldBlocks.length; i++) {
+      const block = oldBlocks[i];
+      if (block.from <= lineSpan.from && block.to >= lineSpan.from) {
+        lineSpan.from = block.from;
+      }
+
+      if (block.from <= lineSpan.to && block.to >= lineSpan.to) {
+        lineSpan.to = block.to;
       }
     }
 
+    console.time('parse');
+    const parsedLines = parseAsLines(text);
+    console.timeEnd('parse');
+    const lines = text.split('\n');
+
+    const newDecorations = new Array(lines.length);
+    const newDecorated = new Array(lines.length);
+
+    const blocks = [];
+    let lineNum = 1;
+    let lastBlock = null;
+
+    console.time('generate');
+    for (let i = 0; i < lines.length; i++) {
+      let decorations = new Array(lines[i].length).fill(null);
+
+      if (parsedLines[i]) {
+        for (let j = 0; j < parsedLines[i].length; j++) {
+          const chunk = parsedLines[i][j];
+          const [startLine, endLine] = [chunk.position.start.line, chunk.position.end.line];
+
+          if (!lastBlock || lastBlock.endLine < startLine) {
+            for (let l = lineNum; l < startLine; l++) {
+              blocks.push({
+                type: 'empty',
+                from: l,
+                to: l,
+              });
+            }
+
+            blocks.push({
+              type: chunk.type,
+              from: startLine,
+              to: endLine,
+            });
+
+            lineNum = endLine + 1;
+            lastBlock = { startLine, endLine };
+          }
+
+          decorations = processChunk(chunk, lines[i], i + 1, decorations);
+        }
+      }
+
+      newDecorations[i] = decorations;
+      if (
+        oldLines
+        && oldLines[i] === lines[i]
+        && JSON.stringify(oldDecorations[i]) === JSON.stringify(decorations)
+      ) {
+        newDecorated[i] = oldDecorated[i];
+      } else {
+        newDecorated[i] = decorations.length
+          ? decorations.every((dec) => dec === null)
+          : true;
+      }
+    }
+    console.timeEnd('generate');
+
+    console.log('blocks: ', blocks);
+
+    this.state.decorations = newDecorations;
+    this.state.decorated = newDecorated;
+
     this.state.lines = lines;
-    this.state.parsedLines = parsedLines;
     this.state.text = text;
   }
 }
@@ -478,7 +726,7 @@ class MarkdownDecorator {
 MarkdownDecorator.prototype.getComponentForKey = MarkdownDecorator.getComponentForKey;
 MarkdownDecorator.prototype.getPropsForKey = MarkdownDecorator.getPropsForKey;
 
-let decorator = new MarkdownDecorator();
+const decorator = new MarkdownDecorator();
 
 const Editor = () => {
   const [editorState, setEditorState] = useState(
@@ -487,20 +735,78 @@ const Editor = () => {
 
   const handleChange = (state) => {
     setEditorState((__prevState) => {
-      const contentState = state.getCurrentContent();
-      const text = contentState.getPlainText();
+      if (!decorator.isFullyDecorated()) {
+        const contentState = state.getCurrentContent();
+        const blocks = contentState.getBlocksAsArray();
 
-      if (!decorator.isFullyDecorated() || text !== decorator.state.text) {
-        decorator = new MarkdownDecorator(decorator.state);
-        return EditorState.set(state, { decorator });
+        let newContentState = contentState;
+
+        const selection = state.getSelection();
+        const anchorKey = selection.getAnchorKey();
+        const focusKey = selection.getFocusKey();
+        let anchorBlockIndex = null;
+        let focusBlockIndex = null;
+
+        for (let i = 0; i < blocks.length; i++) {
+          const key = blocks[i].getKey();
+
+          if (
+            !decorator.state.decorated[i]
+            || decorator.state.decorations[i] === undefined
+          ) {
+            const data = blocks[i].getData().size ? Map() : Map({ flag: true });
+            newContentState = Modifier.setBlockData(
+              newContentState,
+              SelectionState.createEmpty(key),
+              data,
+            );
+          }
+
+          if (anchorKey === key) {
+            anchorBlockIndex = i;
+          }
+
+          if (focusKey === key) {
+            focusBlockIndex = i;
+          }
+        }
+
+        const newBlocksArray = newContentState.getBlocksAsArray();
+        const newSelection = selection.merge({
+          anchorKey: newBlocksArray[anchorBlockIndex].getKey(),
+          focusKey: newBlocksArray[focusBlockIndex].getKey(),
+        });
+
+        console.time('decorate');
+        const newState = EditorState.set(state, { currentContent: newContentState });
+        console.timeEnd('decorate');
+
+        return EditorState.forceSelection(newState, newSelection);
       }
 
       return state;
     });
   };
 
+  const handlePastedText = (text, html, state) => {
+    const pastedBlocks = ContentState.createFromText(text).getBlockMap();
+    const newState = Modifier.replaceWithFragment(
+      state.getCurrentContent(),
+      state.getSelection(),
+      pastedBlocks,
+    );
+
+    handleChange(EditorState.push(state, newState, 'insert-fragment'));
+
+    return true;
+  };
+
   return (
-    <DraftEditor editorState={editorState} onChange={handleChange} />
+    <DraftEditor
+      editorState={editorState}
+      onChange={handleChange}
+      handlePastedText={handlePastedText}
+    />
   );
 };
 
