@@ -599,24 +599,12 @@ class MarkdownDecorator {
   }
 
   generateDecorations(text) {
+    const oldLines = this.state.lines ?? [];
     const oldBlocks = this.state.blocks ?? [];
+    const oldDecorations = (this.state.decorations ?? []).slice(0, oldLines.length);
+    const oldDecorated = (this.state.decorated ?? []).slice(0, oldLines.length);
 
-    const oldLines = this.state.lines;
-    const oldDecorations = this.state.decorations;
-    const oldDecorated = this.state.decorated;
-
-    // TODO: Parsing entire text each time is laggy
-
-    // Find difference in text from last time
-    // Find in previous parse where new changes are - multiple cases to consider
-    // Generate block of text to be parsed in this go
-    // block, line 5 column 1 to line 10 column 8
-    // Parse and process block of text
-    // Decorate the correct lines
-
-    console.time('diff');
     const diff = diffLines(this.state.text || '', text);
-    console.timeEnd('diff');
 
     let linesAdded = 0;
     let linesRemoved = 0;
@@ -638,87 +626,166 @@ class MarkdownDecorator {
 
     changeFrom = lineCount + 1;
 
-    // we need to construct source to be parsed
-    console.log(`${linesRemoved} lines removed from line ${changeFrom}`);
-    console.log(`${linesAdded} lines added at line ${changeFrom}`);
-    // only considering adding
-    const lineSpan = { from: changeFrom, to: changeFrom + linesAdded };
+    let spanFrom = changeFrom;
+    let spanTo = changeFrom;
+
+    let changeFromIndex = -1;
+
     for (let i = 0; i < oldBlocks.length; i++) {
       const block = oldBlocks[i];
-      if (block.from <= lineSpan.from && block.to >= lineSpan.from) {
-        lineSpan.from = block.from;
-      }
 
-      if (block.from <= lineSpan.to && block.to >= lineSpan.to) {
-        lineSpan.to = block.to;
+      if (block.from <= changeFrom && block.to >= changeFrom) {
+        spanFrom = block.from;
+        spanTo = block.to;
+        changeFromIndex = i;
+
+        break;
       }
     }
 
-    console.time('parse');
-    const parsedLines = parseAsLines(text);
-    console.timeEnd('parse');
-    const lines = text.split('\n');
+    let blocksStartIndex = changeFromIndex;
+    let blocksEndIndex = changeFromIndex;
+    if (changeFromIndex > 0) {
+      blocksStartIndex = changeFromIndex - 1;
+      spanFrom = oldBlocks[blocksStartIndex].from;
+    }
+    if (changeFromIndex < oldBlocks.length - 1) {
+      blocksEndIndex = changeFromIndex + 1;
+      spanTo = oldBlocks[blocksEndIndex].to;
+    }
+
+    const shift = (!linesRemoved && linesAdded < 2 ? 0 : linesAdded) - linesRemoved;
+
+    const sliceFrom = spanFrom - 1;
+    const sliceTo = spanTo + shift;
+
+    const textLines = text.split('\n');
+    const sourceText = textLines.slice(sliceFrom, sliceTo).join('\n');
+    const lines = sourceText.split('\n');
+
+    let oldSourceLines = oldLines.slice(spanFrom - 1, spanTo);
+    let sourceDecorations = oldDecorations.slice(spanFrom - 1, spanTo);
+    let sourceDecorated = oldDecorated.slice(spanFrom - 1, spanTo);
+
+    const targetIndex = changeFrom - spanFrom;
+    if (linesAdded > linesRemoved) {
+      [oldSourceLines, sourceDecorations, sourceDecorated] = [
+        oldSourceLines, sourceDecorations, sourceDecorated,
+      ].map(
+        (arr) => [
+          ...arr.slice(0, targetIndex),
+          ...arr.slice(targetIndex, targetIndex + linesRemoved),
+          ...Array(linesAdded - linesRemoved),
+          ...arr.slice(targetIndex + linesRemoved),
+        ],
+      );
+    } else {
+      [oldSourceLines, sourceDecorations, sourceDecorated] = [
+        oldSourceLines, sourceDecorations, sourceDecorated,
+      ].map(
+        (arr) => [
+          ...arr.slice(0, targetIndex),
+          ...Array(linesAdded),
+          ...arr.slice(targetIndex + linesRemoved),
+        ],
+      );
+    }
+
+    [oldSourceLines, sourceDecorations, sourceDecorated] = [
+      oldSourceLines, sourceDecorations, sourceDecorated,
+    ].map(
+      (arr) => {
+        if (arr.length > lines.length) {
+          return arr.slice(0, lines.length);
+        }
+
+        if (arr.length < lines.length) {
+          return [
+            ...arr,
+            ...Array(lines.length - arr.length),
+          ];
+        }
+
+        return arr;
+      },
+    );
+
+    const parsedLines = parseAsLines(sourceText);
 
     const newDecorations = new Array(lines.length);
     const newDecorated = new Array(lines.length);
 
     const blocks = [];
-    let lineNum = 1;
     let lastBlock = null;
 
-    console.time('generate');
     for (let i = 0; i < lines.length; i++) {
       let decorations = new Array(lines[i].length).fill(null);
 
       if (parsedLines[i]) {
-        for (let j = 0; j < parsedLines[i].length; j++) {
-          const chunk = parsedLines[i][j];
-          const [startLine, endLine] = [chunk.position.start.line, chunk.position.end.line];
+        const chunk = parsedLines[i];
+        const [startLine, endLine] = [chunk.position.start.line, chunk.position.end.line];
 
-          if (!lastBlock || lastBlock.endLine < startLine) {
-            for (let l = lineNum; l < startLine; l++) {
-              blocks.push({
-                type: 'empty',
-                from: l,
-                to: l,
-              });
-            }
+        if (!lastBlock || lastBlock.endLine < startLine) {
+          blocks.push({
+            type: chunk.type,
+            from: spanFrom + startLine - 1,
+            to: spanFrom + endLine - 1,
+          });
 
-            blocks.push({
-              type: chunk.type,
-              from: startLine,
-              to: endLine,
-            });
-
-            lineNum = endLine + 1;
-            lastBlock = { startLine, endLine };
-          }
-
-          decorations = processChunk(chunk, lines[i], i + 1, decorations);
+          lastBlock = { startLine, endLine };
         }
+
+        decorations = processChunk(chunk, lines[i], i + 1, decorations);
+      } else {
+        blocks.push({
+          type: 'empty',
+          from: spanFrom + i,
+          to: spanFrom + i,
+        });
+
+        lastBlock = { startLine: i + 1, endLine: i + 1 };
       }
 
       newDecorations[i] = decorations;
       if (
-        oldLines
-        && oldLines[i] === lines[i]
-        && JSON.stringify(oldDecorations[i]) === JSON.stringify(decorations)
+        oldSourceLines
+        && oldSourceLines[i] === lines[i]
+        && JSON.stringify(sourceDecorations[i]) === JSON.stringify(decorations)
       ) {
-        newDecorated[i] = oldDecorated[i];
+        newDecorated[i] = sourceDecorated[i];
       } else {
         newDecorated[i] = decorations.length
           ? decorations.every((dec) => dec === null)
           : true;
       }
     }
-    console.timeEnd('generate');
 
-    console.log('blocks: ', blocks);
+    this.state.blocks = [
+      ...oldBlocks.slice(0, blocksStartIndex - 1),
+      ...blocks,
+      ...oldBlocks.slice(blocksEndIndex + 1).map(
+        (block) => ({ ...block, from: block.from + shift, to: block.to + shift }),
+      ),
+    ];
 
-    this.state.decorations = newDecorations;
-    this.state.decorated = newDecorated;
+    this.state.lines = [
+      ...oldLines.slice(0, spanFrom - 1),
+      ...lines,
+      ...oldLines.slice(spanTo),
+    ];
 
-    this.state.lines = lines;
+    this.state.decorations = [
+      ...oldDecorations.slice(0, spanFrom - 1),
+      ...newDecorations,
+      ...oldDecorations.slice(spanTo),
+    ];
+
+    this.state.decorated = [
+      ...oldDecorated.slice(0, spanFrom - 1),
+      ...newDecorated,
+      ...oldDecorated.slice(spanTo),
+    ];
+
     this.state.text = text;
   }
 }
@@ -726,15 +793,15 @@ class MarkdownDecorator {
 MarkdownDecorator.prototype.getComponentForKey = MarkdownDecorator.getComponentForKey;
 MarkdownDecorator.prototype.getPropsForKey = MarkdownDecorator.getPropsForKey;
 
-const decorator = new MarkdownDecorator();
-
 const Editor = () => {
   const [editorState, setEditorState] = useState(
-    () => EditorState.createEmpty(decorator),
+    () => EditorState.createEmpty(new MarkdownDecorator()),
   );
 
   const handleChange = (state) => {
     setEditorState((__prevState) => {
+      const decorator = state.getDecorator();
+
       if (!decorator.isFullyDecorated()) {
         const contentState = state.getCurrentContent();
         const blocks = contentState.getBlocksAsArray();
@@ -777,9 +844,7 @@ const Editor = () => {
           focusKey: newBlocksArray[focusBlockIndex].getKey(),
         });
 
-        console.time('decorate');
         const newState = EditorState.set(state, { currentContent: newContentState });
-        console.timeEnd('decorate');
 
         return EditorState.forceSelection(newState, newSelection);
       }

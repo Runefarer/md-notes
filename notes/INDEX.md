@@ -71,7 +71,7 @@
         - [x] Make sure editor works with pasting
         - [ ] Make editing smooth and fast / fix any lag
           - [x] Fix lag due to redecoration of blocks
-          - [ ] Fix lag due to parsing
+          - [x] Fix lag due to parsing
         - [ ] Make sure parse processing is better
         - [ ] Make sure multiline definitions are processed/decorated properly
         - [ ] Make sure removals also result in redecoration
