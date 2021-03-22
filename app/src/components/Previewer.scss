@@ -1,6 +1,7 @@
 li {
   p {
     display: inline-block;
+    margin: 0;
   }
 }
 
@@ -37,6 +38,6 @@ table {
 }
 
 .tasklist-checkbox {
-  transform: scale(1.5, 1.5);
+  transform: translateY(0.1em) scale(1.25, 1.25);
   margin-right: 0.75em;
 }

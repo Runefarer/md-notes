@@ -21,22 +21,42 @@ function renderCode(chunk, key) {
     <code key={key} className="code-block">
       {
         tokens.map((token, index) => {
-          if (token.type) {
-            return (
-              <span key={`token-${index + 1}`} className={`token ${token.type}`}>
-                {token.content}
-              </span>
-            );
-          }
-
-          return (
-            <Fragment key={`token-${index + 1}`}>
-              {token}
-            </Fragment>
-          );
+          return renderCodeToken(token, `token-${index + 1}`);
         })
       }
     </code>
+  );
+}
+
+function renderCodeToken(token, key, path = []) {
+  if (!token.type) {
+    return (
+      <Fragment key={key}>{token}</Fragment>
+    );
+  }
+
+  path.push(token.type);
+
+  if (!Array.isArray(token.content)) {
+    return (
+      <span key={key} className={`token${path ? ` ${path.join(' ')}` : ``}`}>
+        {token.content}
+      </span>
+    );
+  }
+
+  return (
+    <Fragment key={key}>
+      {
+        token.content.map((tok, index) => {
+          return renderCodeToken(
+            tok,
+            `${key}-${index + 1}`,
+            path,
+          );
+        })
+      }
+    </Fragment>
   );
 }
 
@@ -288,6 +308,11 @@ const Previewer = ({ source }) => {
   const [output, setOutput] = useState(null);
 
   useEffect(() => {
+    if (!source) {
+      setOutput(null);
+      return;
+    }
+
     const parsed = parse(source);
 
     const chunks = [];

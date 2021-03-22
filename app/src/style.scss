@@ -7,19 +7,3 @@ html, body, #root {
   padding: 0;
   height: 100%;
 }
-
-.container {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: hsl(340, 20%, 20%);
-  color: hsl(0, 10%, 80%);
-  font-size: 1.2rem;
-  
-  .wrapper {
-    flex: 0 0 50%;
-    height: 100%;
-    overflow: auto;
-  }
-}

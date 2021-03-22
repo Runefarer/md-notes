@@ -210,19 +210,33 @@ function processCode(chunk, blockText, blockLine, decorations, from, to) {
       let index = 0;
       for (let j = 0; j < tokens.length; j++) {
         const token = tokens[j];
-        if (token.type) {
-          processed = setKey(
-            index,
-            index + token.length,
-            `token ${token.type}`,
-            processed,
-          );
-        }
-
+        processed = processCodeToken(token, processed, from + index);
         index += token.length;
       }
 
       break;
+    }
+  }
+
+  return processed;
+}
+
+function processCodeToken(token, decorations, from, level = 0) {
+  if (!token?.type) {
+    return decorations;
+  }
+
+  let processed = [...decorations];
+  const key = level === 0 ? `token ${token.type}` : token.type;
+
+  processed = setKey(from, from + token.length, key, processed);
+
+  if (Array.isArray(token.content)) {
+    let index = 0;
+    for (let i = 0; i < token.content.length; i++) {
+      const tok = token.content[i];
+      processed = processCodeToken(tok, processed, from + index, level + 1);
+      index += tok.length;
     }
   }
 
