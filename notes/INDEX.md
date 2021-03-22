@@ -72,6 +72,8 @@
         - [ ] Make editing smooth and fast / fix any lag
           - [x] Fix lag due to redecoration of blocks
           - [x] Fix lag due to parsing
+        - [x] Basic syntax highlighting for code blocks
+        - [ ] Refactor files
         - [ ] Make sure parse processing is better
         - [ ] Make sure multiline definitions are processed/decorated properly
         - [ ] Make sure removals also result in redecoration
@@ -91,10 +93,19 @@
         - [ ] Checkboxes
         - [ ] Horizontal Lines
         - [ ] Languages inside code blocks
+      - [ ] Handle tab properly
+      - [ ] Handle auto-indentation
       - [ ] Toolbar for formatting
       - [ ] Numbered lines with folding
       - [ ] Autocomplete
     - [ ] Setup note previewer
+      - [x] Convert markdown to JSX
+      - [x] Handle all markdown types
+      - [x] Basic syntax highlighting for code blocks
+      - [ ] Refactor files
+    - [ ] Setup note input
+      - [ ] Note title input
+      - [ ] Note tags input 
   - [ ] Setup frontend-backend communication
   - [ ] Setup notes CRUD
     - [ ] Setup CRUD UI
@@ -104,7 +115,6 @@
   - [ ] Setup view and searching notes
   - [ ] Setup tags for notes
   - [ ] Setup searching notes by tags
-  - [ ] Explore Swagger to improve/standardize API
 
 ### App Structure
   - api

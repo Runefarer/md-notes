@@ -1,4 +1,4 @@
-*, *:before, *:after {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
@@ -16,9 +16,10 @@ html, body, #root {
   background-color: hsl(340, 20%, 20%);
   color: hsl(0, 10%, 80%);
   font-size: 1.2rem;
-  overflow: auto;
   
-  & > * {
-    flex-grow: 1;
+  .wrapper {
+    flex: 0 0 50%;
+    height: 100%;
+    overflow: auto;
   }
 }

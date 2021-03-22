@@ -25,6 +25,7 @@
     "mdast-util-from-markdown": "^0.8.5",
     "mdast-util-gfm": "^0.1.2",
     "micromark-extension-gfm": "^0.3.3",
+    "prismjs": "^1.23.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
@@ -39,6 +40,7 @@
     "@types/jest": "^26.0.20",
     "babel-eslint": "^10.1.0",
     "babel-loader": "^8.2.2",
+    "babel-plugin-prismjs": "^2.0.1",
     "css-loader": "^5.1.0",
     "eslint": "^7.20.0",
     "eslint-config-airbnb": "^18.2.1",

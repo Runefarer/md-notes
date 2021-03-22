@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { List, Map } from 'immutable';
 import {
   ContentState,
@@ -8,8 +8,10 @@ import {
   SelectionState,
 } from 'draft-js';
 import { diffLines } from 'diff';
+import Prism from 'prismjs';
 
 import 'draft-js/dist/Draft.css';
+import 'prismjs/themes/prism-dark.css';
 import './Editor.scss';
 
 import { parseAsLines } from '../utils/parser';
@@ -184,6 +186,49 @@ function processListItem(chunk, blockText, blockLine, decorations, from, to) {
   return processed;
 }
 
+function processCode(chunk, blockText, blockLine, decorations, from, to) {
+  let processed = [...decorations];
+
+  processed = setKey(from, to, `code`, processed);
+  processed[from] = `${processed[from]} code-start`;
+  processed[to - 1] = `${processed[to - 1]} code-end`;
+
+  if (!chunk.lang) {
+    return processed;
+  }
+
+  const grammar = Prism.languages[chunk.lang];
+  if (!grammar) {
+    return processed;
+  }
+
+  const lines = chunk.value.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i] === blockText) {
+      const tokens = Prism.tokenize(lines[i], grammar);
+      let index = 0;
+      for (let j = 0; j < tokens.length; j++) {
+        const token = tokens[j];
+        if (token.type) {
+          processed = setKey(
+            index,
+            index + token.length,
+            `token ${token.type}`,
+            processed,
+          );
+        }
+
+        index += token.length;
+      }
+
+      break;
+    }
+  }
+
+  return processed;
+}
+
 function processLink(chunk, blockText, blockLine, decorations, from, to) {
   let processed = [...decorations];
 
@@ -212,7 +257,7 @@ function processLink(chunk, blockText, blockLine, decorations, from, to) {
         );
       }
     }
-  } else {
+  } else if (chunk.position) {
     linkEndLine = chunk.position.start.line;
 
     if (blockLine === linkEndLine) {
@@ -467,16 +512,34 @@ function processImageReference(chunk, blockText, blockLine, decorations, from, t
   return processed;
 }
 
+function processSpecial(chunk, blockText, blockLine, decorations) {
+  let processed = [...decorations];
+
+  if (chunk.type === 'link') {
+    const linkText = chunk.children?.length ? chunk.children[0].value : chunk.url;
+    const index = blockText.indexOf(linkText);
+
+    if (index !== -1) {
+      processed = setKey(index, index + linkText.length, `link link-url`, processed);
+    }
+  }
+
+  return processed;
+}
+
 function processChunkChildren(chunk, blockText, blockLine, decorations) {
   let processed = [...decorations];
 
   if (chunk.children) {
     for (let i = 0; i < chunk.children.length; i++) {
-      if (chunk.children[i].position) {
-        const { start: startPos, end: endPos } = chunk.children[i].position;
+      const child = chunk.children[i];
+      if (child.position) {
+        const { start: startPos, end: endPos } = child.position;
         if (startPos.line <= blockLine && endPos.line >= blockLine) {
-          processed = processChunk(chunk.children[i], blockText, blockLine, processed);
+          processed = processChunk(child, blockText, blockLine, processed);
         }
+      } else {
+        processed = processSpecial(child, blockText, blockLine, processed);
       }
     }
   }
@@ -485,7 +548,7 @@ function processChunkChildren(chunk, blockText, blockLine, decorations) {
 }
 
 function processChunk(chunk, blockText, blockLine, decorations) {
-  if (chunk.type === 'text' || chunk.type === 'html') {
+  if (chunk.type === 'text') {
     return decorations;
   }
 
@@ -515,6 +578,12 @@ function processChunk(chunk, blockText, blockLine, decorations) {
 
     case 'listItem':
       processed = processListItem(
+        chunk, blockText, blockLine, processed, from.column - 1, to.column - 1,
+      );
+      break;
+
+    case 'code':
+      processed = processCode(
         chunk, blockText, blockLine, processed, from.column - 1, to.column - 1,
       );
       break;
@@ -604,6 +673,7 @@ class MarkdownDecorator {
     const oldDecorations = (this.state.decorations ?? []).slice(0, oldLines.length);
     const oldDecorated = (this.state.decorated ?? []).slice(0, oldLines.length);
 
+    const textLines = text.split('\n');
     const diff = diffLines(this.state.text || '', text);
 
     let linesAdded = 0;
@@ -654,12 +724,22 @@ class MarkdownDecorator {
       spanTo = oldBlocks[blocksEndIndex].to;
     }
 
-    const shift = (!linesRemoved && linesAdded < 2 ? 0 : linesAdded) - linesRemoved;
+    const isSameLastLine = oldLines[changeFrom - 1] === textLines[changeFrom - 1];
+
+    let isSameLine = !linesRemoved && linesAdded < 2;
+    if (isSameLine) {
+      isSameLine = oldLines[changeFrom - 1] !== textLines[changeFrom];
+    }
+
+    if (linesRemoved && isSameLastLine) {
+      linesRemoved -= 1;
+    }
+
+    const shift = (isSameLine ? 0 : linesAdded) - linesRemoved;
 
     const sliceFrom = spanFrom - 1;
     const sliceTo = spanTo + shift;
 
-    const textLines = text.split('\n');
     const sourceText = textLines.slice(sliceFrom, sliceTo).join('\n');
     const lines = sourceText.split('\n');
 
@@ -668,7 +748,7 @@ class MarkdownDecorator {
     let sourceDecorated = oldDecorated.slice(spanFrom - 1, spanTo);
 
     const targetIndex = changeFrom - spanFrom;
-    if (linesAdded > linesRemoved) {
+    if (linesRemoved && linesAdded > linesRemoved) {
       [oldSourceLines, sourceDecorations, sourceDecorated] = [
         oldSourceLines, sourceDecorations, sourceDecorated,
       ].map(
@@ -679,7 +759,7 @@ class MarkdownDecorator {
           ...arr.slice(targetIndex + linesRemoved),
         ],
       );
-    } else {
+    } else if (!isSameLine) {
       [oldSourceLines, sourceDecorations, sourceDecorated] = [
         oldSourceLines, sourceDecorations, sourceDecorated,
       ].map(
@@ -719,6 +799,14 @@ class MarkdownDecorator {
     let lastBlock = null;
 
     for (let i = 0; i < lines.length; i++) {
+      if (
+        lines[i] === ''
+        && oldSourceLines[i] === undefined
+        && sourceDecorated[i + 1] === true
+      ) {
+        sourceDecorated[i + 1] = false;
+      }
+
       let decorations = new Array(lines[i].length).fill(null);
 
       if (parsedLines[i]) {
@@ -761,7 +849,7 @@ class MarkdownDecorator {
     }
 
     this.state.blocks = [
-      ...oldBlocks.slice(0, blocksStartIndex - 1),
+      ...oldBlocks.slice(0, Math.max(blocksStartIndex - 1, 0)),
       ...blocks,
       ...oldBlocks.slice(blocksEndIndex + 1).map(
         (block) => ({ ...block, from: block.from + shift, to: block.to + shift }),
@@ -793,14 +881,45 @@ class MarkdownDecorator {
 MarkdownDecorator.prototype.getComponentForKey = MarkdownDecorator.getComponentForKey;
 MarkdownDecorator.prototype.getPropsForKey = MarkdownDecorator.getPropsForKey;
 
-const Editor = () => {
+const Editor = ({ value, onChange }) => {
   const [editorState, setEditorState] = useState(
-    () => EditorState.createEmpty(new MarkdownDecorator()),
+    () => EditorState.createWithContent(
+      ContentState.createFromText(value ?? ''),
+      new MarkdownDecorator(),
+    ),
   );
 
+  useEffect(() => {
+    const valueText = value ?? '';
+    const text = editorState.getCurrentContent().getPlainText();
+
+    if (valueText !== text) {
+      const newState = EditorState.push(
+        editorState,
+        ContentState.createFromText(valueText),
+        'insert-characters',
+      );
+
+      setEditorState(newState);
+    }
+  }, [value]);
+
   const handleChange = (state) => {
+    const text = state.getCurrentContent().getPlainText();
+    if (typeof onChange === 'function') {
+      const valueText = value ?? '';
+
+      if (valueText !== text) {
+        onChange(text);
+      }
+    }
+
     setEditorState((__prevState) => {
       const decorator = state.getDecorator();
+
+      if (decorator.state.text !== text) {
+        decorator.generateDecorations(text);
+      }
 
       if (!decorator.isFullyDecorated()) {
         const contentState = state.getCurrentContent();
@@ -844,7 +963,7 @@ const Editor = () => {
           focusKey: newBlocksArray[focusBlockIndex].getKey(),
         });
 
-        const newState = EditorState.set(state, { currentContent: newContentState });
+        const newState = EditorState.push(state, newContentState, 'change-block-data');
 
         return EditorState.forceSelection(newState, newSelection);
       }
@@ -855,13 +974,13 @@ const Editor = () => {
 
   const handlePastedText = (text, html, state) => {
     const pastedBlocks = ContentState.createFromText(text).getBlockMap();
-    const newState = Modifier.replaceWithFragment(
+    const newContent = Modifier.replaceWithFragment(
       state.getCurrentContent(),
       state.getSelection(),
       pastedBlocks,
     );
 
-    handleChange(EditorState.push(state, newState, 'insert-fragment'));
+    handleChange(EditorState.push(state, newContent, 'insert-fragment'));
 
     return true;
   };

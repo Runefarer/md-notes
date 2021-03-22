@@ -15,7 +15,14 @@
 
 .code {
   font-family: monospace;
-  padding: 0.5em;
+  
+  &.code-start {
+    padding-left: 0.5em;
+  }
+
+  &.code-end {
+    padding-right: 0.5em;
+  }
 }
 
 .definition {

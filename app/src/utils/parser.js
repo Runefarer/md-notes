@@ -15,6 +15,7 @@ export const parseAsLines = (text) => {
   const lines = [];
 
   const parsed = parse(text);
+
   parsed.children.forEach((chunk) => {
     const { start, end } = chunk.position;
     for (let i = 0; i <= (end.line - start.line); i++) {
