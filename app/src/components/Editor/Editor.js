@@ -14,7 +14,7 @@ import 'draft-js/dist/Draft.css';
 import 'prismjs/themes/prism-dark.css';
 import './Editor.scss';
 
-import { parseAsLines } from '../utils/parser';
+import { parseAsLines } from '../../utils/parser';
 
 const MarkdownHighlight = ({ type, children }) => {
   return (
@@ -895,7 +895,7 @@ class MarkdownDecorator {
 MarkdownDecorator.prototype.getComponentForKey = MarkdownDecorator.getComponentForKey;
 MarkdownDecorator.prototype.getPropsForKey = MarkdownDecorator.getPropsForKey;
 
-const Editor = ({ value, onChange }) => {
+const Editor = ({ placeholder, value, onChange }) => {
   const [editorState, setEditorState] = useState(
     () => EditorState.createWithContent(
       ContentState.createFromText(value ?? ''),
@@ -1001,6 +1001,7 @@ const Editor = ({ value, onChange }) => {
 
   return (
     <DraftEditor
+      placeholder={placeholder}
       editorState={editorState}
       onChange={handleChange}
       handlePastedText={handlePastedText}

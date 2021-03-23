@@ -4,7 +4,7 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism-dark.css';
 import './Previewer.scss';
 
-import { parse } from '../utils/parser';
+import { parse } from '../../utils/parser';
 
 function renderCode(chunk, key) {
   if (!chunk.lang || !Prism.languages[chunk.lang]) {
