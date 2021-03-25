@@ -1,3 +1,1 @@
-import TagsInput from './TagsInput';
-
-export { TagsInput as default };
+export { default } from './TagsInput';

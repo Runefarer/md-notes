@@ -205,9 +205,9 @@ function processCode(chunk, blockText, blockLine, decorations, from, to) {
   const lines = chunk.value.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i] === blockText) {
+    if (blockText.endsWith(lines[i])) {
       const tokens = Prism.tokenize(lines[i], grammar);
-      let index = 0;
+      let index = blockText.indexOf(lines[i]);
       for (let j = 0; j < tokens.length; j++) {
         const token = tokens[j];
         processed = processCodeToken(token, processed, from + index);

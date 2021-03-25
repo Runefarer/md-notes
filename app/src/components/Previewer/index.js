@@ -1,3 +1,1 @@
-import Previewer from './Previewer';
-
-export { Previewer as default };
+export { default } from './Previewer';

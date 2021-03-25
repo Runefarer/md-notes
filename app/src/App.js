@@ -1,46 +1,37 @@
-import { useState } from 'react';
+import { Suspense, lazy } from 'react';
 
-import NoteForm from './components/NoteForm';
-import { createNote, editNote } from './utils/api';
+import {
+  BrowserRouter as Router,
+  Route,
+  Switch,
+} from 'react-router-dom';
+
+const Home = lazy(() => import('./pages/Home'));
+const NotesExplorer = lazy(() => import('./pages/NotesExplorer'));
+const NoteViewer = lazy(() => import('./pages/NoteViewer'));
+const NoteEditor = lazy(() => import('./pages/NoteEditor'));
 
 const App = () => {
-  const [note, setNote] = useState();
-
-  const handleSubmit = (value) => {
-    if (note?.id) {
-      const tags = [];
-      value.tags.forEach((tag) => {
-        if (note.tags.indexOf(tag) === -1) {
-          tags.push({ tag, op: 'ADD' });
-        }
-      });
-      note.tags.forEach((tag) => {
-        if (value.tags.indexOf(tag) === -1) {
-          tags.push({ tag, op: 'REMOVE' });
-        }
-      });
-
-      editNote(note.id, { ...value, tags })
-        .then((edited) => {
-          console.log('edited note: ', edited);
-          setNote(edited);
-        })
-        .catch((err) => {
-          console.log('Error when editing note: ', err);
-        });
-    } else {
-      createNote(value)
-        .then((created) => {
-          console.log('created note: ', created);
-          setNote(created);
-        })
-        .catch((err) => {
-          console.log('Error when creating note: ', err);
-        });
-    }
-  };
-
-  return (<NoteForm value={note} onSubmit={handleSubmit} />);
+  return (
+    <Router>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Switch>
+          <Route path={['/notes/create', '/notes/edit/:id']}>
+            <NoteEditor />
+          </Route>
+          <Route path="/notes/:id">
+            <NoteViewer />
+          </Route>
+          <Route path="/notes">
+            <NotesExplorer />
+          </Route>
+          <Route path="/">
+            <Home />
+          </Route>
+        </Switch>
+      </Suspense>
+    </Router>
+  );
 };
 
 export { App as default };

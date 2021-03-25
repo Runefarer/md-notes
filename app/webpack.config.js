@@ -8,6 +8,7 @@ module.exports = {
   output: {
     filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'dist'),
+    publicPath: '/',
   },
   module: {
     rules: [
@@ -32,5 +33,6 @@ module.exports = {
     compress: true,
     host: '0.0.0.0',
     port: 8000,
+    historyApiFallback: true,
   },
 };

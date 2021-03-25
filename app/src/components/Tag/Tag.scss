@@ -1,0 +1,19 @@
+.tag {
+  display: inline-block;
+
+  .tag-content {  
+    display: flex;
+    align-items: center;
+    padding: 0.1em 0.2em;
+    word-break: break-word;
+
+    .remove-tag {
+      font-size: 0.75em;
+      padding: 0 0.25em;
+      border-radius: 50%;
+      border: none;
+      outline: none;
+      cursor: pointer;
+    }
+  }
+}

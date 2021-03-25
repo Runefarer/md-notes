@@ -103,10 +103,13 @@
       - [x] Handle all markdown types
       - [x] Basic syntax highlighting for code blocks
       - [ ] Refactor files
-    - [ ] Setup note input
-      - [ ] Note title input
-      - [ ] Note tags input 
-  - [ ] Setup frontend-backend communication
+    - [x] Setup basic note input 
+    - [x] Setup frontend-backend communication
+    - [x] Setup multiple pages and routing
+    - [x] Setup basic viewing note
+    - [x] Setup basic listing notes
+    - [ ] Setup searching for notes
+  - [ ] Handle all errors properly
   - [ ] Setup notes CRUD
     - [ ] Setup CRUD UI
     - [ ] Setup CRUD functionality

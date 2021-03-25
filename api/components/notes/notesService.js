@@ -11,8 +11,7 @@ export const getNote = async (id) => {
 
 export const getNotes = async ({ title, tags } = {}) => {
   return NoteModel
-    .find(getNotesFilter({ title, tags }), { score: { $meta: 'textScore' } })
-    .sort({ score: { $meta: 'textScore' } });
+    .find(getNotesFilter({ title, tags }));
 };
 
 export const createNote = async ({ title, content, tags } = {}) => {

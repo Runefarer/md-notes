@@ -4,7 +4,7 @@ const request = axios.create({
   baseURL: 'http://localhost:3000/api',
 });
 
-const doRequest = async (fn) => {
+const send = async (fn) => {
   try {
     const { data } = await fn();
     return data;
@@ -13,14 +13,25 @@ const doRequest = async (fn) => {
   }
 };
 
+export const getNote = (id) => {
+  return send(() => request.get(`/notes/${id}`));
+};
+
+export const getNotes = (query) => {
+  return send(() => request.get(`/notes${query ? `?${query}` : ``}`));
+};
+
 export const createNote = (data) => {
-  return doRequest(() => request.post('/notes', data));
+  return send(() => request.post('/notes', data));
 };
 
 export const editNote = (id, data) => {
-  return doRequest(() => request.patch(`/notes/${id}`, data));
+  return send(() => request.patch(`/notes/${id}`, data));
 };
 
 export default {
+  getNote,
+  getNotes,
   createNote,
+  editNote,
 };

@@ -1,3 +1,1 @@
-import NoteForm from './NoteForm';
-
-export { NoteForm as default };
+export { default } from './NoteForm';

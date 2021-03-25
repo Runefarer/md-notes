@@ -2,10 +2,16 @@ import { useState } from 'react';
 
 import './TagsInput.scss';
 
+import TagsList from '../TagsList';
+
 const TagsInput = ({ placeholder, value, onChange }) => {
   const [text, setText] = useState('');
 
   const addTag = (tagText) => {
+    if (!tagText) {
+      return;
+    }
+
     const oldTags = value ?? [];
     const testText = tagText.toLowerCase();
     if (
@@ -49,26 +55,7 @@ const TagsInput = ({ placeholder, value, onChange }) => {
 
   return (
     <div className="tags-input-container">
-      {
-        (value ?? []).map((tag, index) => (
-          <div key={tag} className="tag">
-            <div className="tag-content">
-              <span>{tag}</span>
-              <button
-                type="button"
-                className="close-tag"
-                onClick={() => removeTag(index)}
-              >
-                &#10060;
-                <span className="sr-only">
-                  Remove Tag:
-                  {tag}
-                </span>
-              </button>
-            </div>
-          </div>
-        ))
-      }
+      <TagsList tags={value} onChange={onChange} />
       <input
         className="tags-text-input"
         type="text"
