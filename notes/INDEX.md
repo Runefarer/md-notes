@@ -108,7 +108,7 @@
     - [x] Setup multiple pages and routing
     - [x] Setup basic viewing note
     - [x] Setup basic listing notes
-    - [ ] Setup searching for notes
+    - [x] Setup basic searching for notes
   - [ ] Handle all errors properly
   - [ ] Setup notes CRUD
     - [ ] Setup CRUD UI

@@ -38,7 +38,10 @@ const Error = {
 api.get('/', async (req, res) => {
   const { title, tags } = req.query;
 
-  const notes = await getNotes({ title, tags });
+  const notes = await getNotes({
+    title,
+    tags: tags ? tags.split(',') : tags,
+  });
 
   res.json(notes);
 });

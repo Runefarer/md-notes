@@ -16,7 +16,7 @@ const TagsInput = ({ placeholder, value, onChange }) => {
     const testText = tagText.toLowerCase();
     if (
       typeof onChange === 'function'
-      && !oldTags.find((tag) => tag.toLowerCase() === testText)
+      && oldTags.every((tag) => tag.toLowerCase() !== testText)
     ) {
       onChange([...oldTags, tagText]);
     }

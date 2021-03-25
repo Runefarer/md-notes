@@ -42,12 +42,12 @@ describe('Notes API', () => {
         {
           title: 'First title',
           content: '# First content',
-          tags: ['test', 'tag'],
+          tags: ['test', 'tag', 'foo'],
         },
         {
           title: 'Second title',
           content: '## Second content',
-          tags: ['second', 'tag'],
+          tags: ['second', 'tag', 'foo'],
         },
         {
           title: 'Third title',
@@ -77,14 +77,14 @@ describe('Notes API', () => {
         [
           'given tags as query',
           {
-            query: `?tags=${encodeURIComponent('test')}&tags=${encodeURIComponent('tag')}`,
+            query: `?tags=${encodeURIComponent('test,tag')}`,
             expected: [data[0]],
           },
         ],
         [
           'given both title and tags as query',
           {
-            query: `?title=${encodeURIComponent('sec')}&tags=${encodeURIComponent('tag')}`,
+            query: `?title=${encodeURIComponent('sec')}&tags=${encodeURIComponent('tag,foo')}`,
             expected: [data[1]],
           },
         ],

@@ -11,7 +11,7 @@ const NotesList = ({ children, notes, onView }) => {
     <>
       {!notes?.length && children}
       {
-        notes?.length
+        !!(notes?.length)
         && (
           <div>
             {
